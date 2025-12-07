@@ -1,0 +1,474 @@
+-- BLOOD DEBT ROLE ESP
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local UserInputService = game:GetService("UserInputService")
+local workspaceRef = workspace
+
+-- Settings
+local ESPEnabled = false
+local HighlightColor = Color3.fromRGB(0, 255, 0)
+local Highlights = {}
+local cooldown = 2
+local displayAmmo = false
+local SpeedMultiplier = 0.2
+local Enabled = false -- tp walk
+local SpeedScale = 1.75 -- Divider
+
+-- Rayfield Window
+local Window = Rayfield:CreateWindow({
+    Name = "Blood Debt Role ESP",
+    LoadingTitle = "Loading...",
+    LoadingSubtitle = "Role ESP + more",
+    ShowText = "Window",
+    DisableRayfieldPrompts = true,
+    KeySystem = false,
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = RoleESPConfig, -- Create a custom folder for your hub/game
+        FileName = "RoleESPConfig",
+    }
+})
+
+-- Ammo Display
+local ammoGui = Instance.new("ScreenGui")
+ammoGui.Name = "AmmoGui"
+ammoGui.ResetOnSpawn = false
+ammoGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local label = Instance.new("TextLabel")
+label.Name = "AmmoDisplay"
+label.Parent = ammoGui
+label.AnchorPoint = Vector2.new(0, 0.5)
+label.Position = UDim2.new(0, 30, 0.5, 0)
+label.Size = UDim2.fromOffset(150, 45)
+label.TextScaled = true
+label.BackgroundTransparency = 0.5
+label.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+label.TextColor3 = Color3.fromRGB(255, 255, 255)
+label.Font = Enum.Font.SourceSansSemibold
+label.Visible = false
+label.Text = "--/--"
+label.ZIndex = 10
+
+local function updateAmmo(tool)
+    if tool and tool:IsA("Tool") and tool:GetAttribute("mag") then
+        label.Visible = true
+        label.Text = tool:GetAttribute("mag") .. "/" .. "--"
+    else
+        label.Visible = false
+        label.Text = "--/--"
+    end
+end
+
+RunService.Heartbeat:Connect(function()
+    if displayAmmo == true then
+        local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        updateAmmo(tool)
+    end
+end)
+
+local Main = Window:CreateTab("Main", "warehouse")
+
+local invisSection1 = Main:CreateSection(" ")
+
+Main:CreateToggle({
+    Name = "Display Ammo",
+    CurrentValue = displayAmmo,
+    Callback = function(value)
+        displayAmmo = value
+    end
+})
+
+-- ==================== ESP ====================
+
+-- Weapon tables
+local killerWeapons = {
+    ["CharcoalSteel JS-22"] = true,
+    ["Pretty Pink RR-LCP"] = true,
+    ["JS2-BondsDerringy"] = true,
+    ["GILDED"] = true,
+    ["Kamatov"] = true,
+    ["JS2-Derringy"] = true,
+    ["JS-22"] = true,
+    ["RR-LightCompactPistolS"] = true,
+    ["J9-Mereta"] = true,
+    ["RY's GG-17"] = true,
+    ["RR-LCP"] = true,
+    ["Door'bler"] = true,
+    ["JS1-Competitor"] = true,
+    ["Clothed Sawn-off"] = true,
+    ["Sawn-off"] = true,
+    ["Clothed Rosen-Obrez"] = true,
+    ["Rosen-Obrez"] = true,
+    ["GraySteel K1911"] = true,
+    ["DarkSteel K1911"] = true,
+    ["SilverSteel K1911"] = true,
+    ["K1911"] = true,
+    ["ZZ-90"] = true,
+    ["SKORPION"] = true,
+    ["Mares Leg"] = true,
+    ["RR-LightCompactPistol"] = true,
+    ["KamatovS"] = true,
+    ["ChromeSlide Turqoise RR-LCP"] = true,
+    ["JS1-CYCLOPS"] = true,
+    ["THUMPA"] = true,
+    ["LUT-E 'KRUS'"] = true,
+    ["Memories"] = true,
+    ["Hammer n Bullet"] = true,
+    ["JS-22GILDED"] = true,
+    ["Sawn-offGILDED"] = true,
+    ["Door'bler TIGERSTRIPES"] = true,
+    ["Anatoly's JS-22"] = true,
+    ["PLASTIC JS-22"] = true,
+    ["JTS225-OBREZ"] = true,
+    ["HEARDBALLA"] = true,
+    ["Whiteout Rosen-Obrez"] = true,
+    ["Whiteout RR-LCP"] = true,
+    ["JTS225-Obrez Monochrome"] = true,
+    ["JTS225-Obrez"] = true,
+    ["Sawn-off10"] = true,
+    ["Nikolai's 'Dented'"] = true,
+    ["JS-44"] = true,
+    ["BandagePack"] = true,
+    ["JTS225-Obrez Poly"] = true,
+    ["Mares Leg10"] = true,
+    ["RR-LCP10"] = true,
+    ["JTS225-Obrez Partycannon"] = true,
+    ["Bandages"] = true,
+    ["corrodedmetal JS-22"] = true,
+    ["CharcoalSteel JS-44"] = true,
+    ["SKORPION10"] = true,
+    ["Meretta486Palubu Sawn-Off"] = true,
+    ["KamatovDRUM"] = true,
+    ["Micro KZI"] = true,
+    ["Whiteout RR-LightCompactPistolS"] = true,
+    ["Clothed SKORPION"] = true,
+    ["CharcoalSteel SKORPION"] = true,
+    ["Charcoal Steel SKORPION"] = true,
+    ["Katya's 'Memories'"] = true,
+    ["Dual SKORPS"] = true,
+    ["HWISSH-KP9"] = true,
+    ["JS2-DerringyGILDED"] = true,
+    ["K1911GILDED"] = true,
+    ["Mandols-5"] = true,
+    ["RDG-2B"] = true,
+    ["Testament"] = true,
+    ["Jolibri"] = true,
+    ["JAVELIN-OBREZS"] = true,
+    ["AGM22"] = true,
+    ["RR-Mark2"] = true,
+    ["Dual LCPs"] = true,
+    ["RR-LightCompactPistolS10"] = true,
+    ["Wild Mandols-5"] = true,
+    ["Kensington20"] = true,
+    ["Kensington"] = true,
+    ["ZOZ-106"] = true,
+    ["Whizz"] = true,
+    ["Rosen Nagan"] = true,
+    ["WISP"] = true,
+    ["WISP Pearl"] = true,
+    ["MAK-1020"] = true,
+    ["SKORPION 'AMIRNOV"] = true,
+    ["PTRB-41"] = true,
+    ["Memorial"] = true,
+    ["Mooser"] = true,
+    ["HW-K7"] = true,
+    ["KR7S"] = true,
+    ["RUZKH-12"] = true,
+    ["TEKE-9"] = true,
+    ["Comically Large Spoon"] = true,
+    ["Skeleton Rosen-Obrez"] = true,
+    ["Berf-JOLT"] = true,
+    ["1895-Rosey"] = true,
+    ["K1911 'Memorial'"] = true,
+    ["APZ"] = true,
+    ["Door'bler"] = true,
+    ["JTS225-ObrezGILDED"] = true,
+    ["Casaro 91"] = true,
+}
+
+local vigilanteWeapons = {
+    ["Beagle"] = true,
+    ["Beagle TIGERSTRIPES"] = true,
+    ["Paradise Beagle"] = true,
+    ["IZVEKH-412"] = true,
+    ["SilverSteel RR-Snubby"] = true,
+    ["RR-Snubby"] = true,
+    ["ZKZ-Obrez"] = true,
+    ["GG-17"] = true,
+    ["J9-M"] = true,
+    ["J9-Meretta"] = true,
+    ["Pretty Pink GG-17"] = true,
+    ["GG-17 TAN"] = true,
+    ["GG-17GILDED"] = true,
+    ["RR-SnubbyGILDED"] = true,
+    ["HWISSH-226"] = true,
+    ["ZKZ-Obrez10"] = true,
+    ["Buxxberg-COMPACT"] = true,
+    ["Pretty Pink Buxxberg-COMPACT"] = true,
+    ["JS-5A-Obrez"] = true,
+    ["Dual Elites"] = true,
+    ["RR-Snubby10"] = true,
+    ["DRICO"] = true,
+    ["HW-M5K"] = true,
+    ["CharcoalSteel I412"] = true,
+    ["GG-1720"] = true,
+    ["Dual GG-17s"] = true,
+    ["Dual GG 17s"] = true,
+    ["Mini Ranch Rifle"] = true,
+    ["Clothed ZKZ-Obrez"] = true,
+    ["Case Hardened DRICO"] = true,
+}
+
+local specialKillerWeapons = {
+    ["RY's GG-17"] = true,
+    ["AT's KAR15"] = true,
+    ["RR-CoachShotgun"] = true,
+    ["ANK74SU"] = true,
+    ["ZOZ-106SCOPED"] = true,
+}
+
+local specificJuggernautWeapons = {
+    ["AK47 Case Hardened 1000000"] = true,
+    ["RVK"] = true,
+    ["Pretty Pink RVK"] = true,
+    ["VK's ANKM"] = true,
+    ["VA's ANKM"] = true,
+    ["Mason's Machete"] = true,
+    ["GZhG-7.62"] = true,
+    ["TG's JAVELIN-ZVD"] = true,
+    ["Pretty Pink RVK"] = true,
+}
+
+-- Highlight color logic
+function getPlayerHighlightColor(player)
+    local bp = player:FindFirstChild("Backpack")
+    local char = player.Character
+
+    local function hasWeapon(tbl)
+        if bp then
+            for _, tool in ipairs(bp:GetChildren()) do
+                if tool:IsA("Tool") and tbl[tool.Name] then
+                    return true
+                end
+            end
+        end
+        if char then
+            for _, tool in ipairs(char:GetChildren()) do
+                if tool:IsA("Tool") and tbl[tool.Name] then
+                    return true
+                end
+            end
+        end
+        return false
+    end
+
+    if hasWeapon(specificJuggernautWeapons) then
+        return Color3.fromRGB(255, 165, 0) -- Juggernaut → Orange
+    end
+    if hasWeapon(killerWeapons) or hasWeapon(specialKillerWeapons) then
+        return Color3.fromRGB(255, 0, 0) -- Killer → Red
+    end
+    if hasWeapon(vigilanteWeapons) then
+        return Color3.fromRGB(0, 0, 255) -- Vigilante → Blue
+    end
+
+    return HighlightColor -- default or user-selected color
+end
+
+-- Create / update highlight
+local function createOrUpdateHighlight(player)
+    if not player or not player.Character then return end
+    if player == LocalPlayer then return end
+
+    local existing = player.Character:FindFirstChild("ESPHighlight")
+    local color = getPlayerHighlightColor(player)
+    if not color then
+        if existing then existing:Destroy() end
+        return
+    end
+
+    if existing and existing:IsA("Highlight") then
+        existing.OutlineColor = color
+        existing.FillColor = color
+        existing.FillTransparency = 1
+        existing.OutlineTransparency = 0
+        existing.Enabled = ESPEnabled
+        Highlights[player] = existing
+        return
+    end
+
+    if existing and not existing:IsA("Highlight") then
+        existing:Destroy()
+    end
+
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ESPHighlight"
+    highlight.Parent = player.Character
+    highlight.FillTransparency = 1
+    highlight.OutlineTransparency = 0
+    highlight.OutlineColor = color
+    highlight.FillColor = color
+    highlight.Enabled = ESPEnabled
+
+    Highlights[player] = highlight
+end
+
+-- Remove highlight
+local function removeHighlightForPlayer(player)
+    local h = Highlights[player]
+    Highlights[player] = nil
+    if h and h.Parent then
+        h:Destroy()
+    end
+end
+
+-- Character added handler
+local function onCharacterAdded(player)
+    player.CharacterAdded:Connect(function(char)
+        repeat task.wait() until char and char:FindFirstChild("HumanoidRootPart")
+        task.defer(function()
+            createOrUpdateHighlight(player)
+        end)
+    end)
+end
+
+-- Update all highlights
+local function UpdateAllHighlightsEnabled()
+    for player, highlight in pairs(Highlights) do
+        if highlight and highlight.Parent then
+            local color = getPlayerHighlightColor(player)
+            if color then
+                highlight.Enabled = ESPEnabled
+                highlight.OutlineColor = color
+                highlight.FillColor = color
+            else
+                highlight.Enabled = false
+            end
+        end
+    end
+end
+
+local function UpdateAllHighlightColors()
+    for player, highlight in pairs(Highlights) do
+        if highlight and highlight.Parent then
+            local color = getPlayerHighlightColor(player)
+            if color then
+                highlight.OutlineColor = color
+                highlight.FillColor = color
+            else
+                highlight.Enabled = false
+            end
+        end
+    end
+end
+
+-- Player join / respawn
+for _, player in ipairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        onCharacterAdded(player)
+        if player.Character then
+            createOrUpdateHighlight(player)
+        end
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    if player ~= LocalPlayer then
+        onCharacterAdded(player)
+        player.CharacterAdded:Connect(function()
+            createOrUpdateHighlight(player)
+        end)
+    end
+end)
+
+Players.PlayerRemoving:Connect(removeHighlightForPlayer)
+
+-- Periodic backpack + tool scan every 5 seconds
+task.spawn(function()
+    while true do
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer then
+                createOrUpdateHighlight(p)
+            end
+        end
+        task.wait(cooldown)
+    end
+end)
+
+local ESPTab = Window:CreateTab("ESP", "eye")
+local invisibleSection2 = ESPTab:CreateSection(" ")
+
+ESPTab:CreateToggle({
+    Name = "Enable ESP",
+    CurrentValue = ESPEnabled,
+    Callback = function(value)
+        ESPEnabled = value
+        UpdateAllHighlightsEnabled()
+    end
+})
+
+ESPTab:CreateInput({
+    Name = "ESP Refresh Cooldown",
+    CurrentValue = cooldown or 2,
+    PlaceholderText = "Default: 2",
+    Flag = "RefreshCooldown",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(v)
+        local num = tonumber(v)
+        if num then
+            cooldown = num
+        end
+    end
+})
+
+-- ==================== Movement ====================
+
+local MovementTab = Window:CreateTab("Movement", "chevrons-up")
+
+local function OnStep()
+    if not Enabled then return end
+    local Char = LocalPlayer.Character
+    if not Char then return end
+
+    local Humanoid = Char:FindFirstChildWhichIsA("Humanoid")
+    local HRP = Char:FindFirstChild("HumanoidRootPart")
+    if not Humanoid or not HRP then return end
+
+    local moveDir = Humanoid.MoveDirection
+    if moveDir.Magnitude > 0 then
+        HRP.CFrame = HRP.CFrame + (moveDir * (SpeedMultiplier / SpeedScale))
+    end
+end
+
+local tpWalkSection = MovementTab:CreateSection("TP Walk")
+
+MovementTab:CreateToggle({
+    Name = "Enable TP Walk",
+    CurrentValue = false,
+    Callback = function(state)
+        Enabled = state
+        if state then
+            RunService:BindToRenderStep("SmoothJoyMove", Enum.RenderPriority.Character.Value, OnStep)
+        else
+            RunService:UnbindFromRenderStep("SmoothJoyMove")
+        end
+    end,
+})
+
+MovementTab:CreateInput({
+    Name = "Speed Multiplier",
+    PlaceholderText = "Default: 0.2",
+    Flag = "speedMulitplier",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(text)
+        local num = tonumber(text)
+        if num then SpeedMultiplier = num end
+    end,
+})
+
+Rayfield:LoadConfiguration()
